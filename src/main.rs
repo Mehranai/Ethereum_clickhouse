@@ -28,7 +28,6 @@ struct WalletRow {
 struct TransactionRow {
     hash: String,
     block_number: u64,
-    tx_index: u32,
     from_addr: String,
     to_addr: String,
     value: String
@@ -52,7 +51,7 @@ enum Sensivity {
 async fn main() -> Result<()> {
     let clickhouse = Arc::new(
         Client::default()
-            .with_url("localhost:9000")
+            .with_url("http://localhost:8123")
             .with_user("mehran")
             .with_password("mehran.crypto9")
             .with_database("pajohesh"),
@@ -67,22 +66,21 @@ async fn main() -> Result<()> {
     let start_block: u64 = 19000000;
     let mut tx_count = 0;
     let total_txs = 300;
-
     for block_number in start_block..start_block + 20 {
         if tx_count >= total_txs { break; }
 
         if let Some(block) = provider.get_block_with_txs(block_number).await? {
-            for (tx_index, tx) in block.transactions.iter().enumerate() {
+            for tx in block.transactions {
                 if tx_count >= total_txs { break; }
                 process_tx(
                     &provider,
                     &clickhouse,
-                    tx,
+                    &tx,
                     block_number,
-                    tx_index as u32,
                 )
                 .await?;
                 tx_count += 1;
+                println!("Add one Tx! #{}", tx_count);
             }
         }
     }
@@ -96,7 +94,6 @@ async fn process_tx(
     clickhouse: &Arc<Client>,
     tx: &Transaction,
     block_number: u64,
-    tx_index: u32,
 ) -> Result<()> {
     let from = Some(tx.from);
     let to = tx.to;
@@ -125,7 +122,6 @@ async fn process_tx(
         clickhouse,
         tx.hash,
         block_number,
-        tx_index,
         from,
         to,
         tx.value.to_string()
@@ -164,7 +160,7 @@ async fn save_wallet_clickhouse(
 
     let mut insert_wallet = clickhouse.insert::<WalletRow>("wallet_info").await?;
     
-    let mut insert_owner = clickhouse.insert::<OwnerRow>("wallet_info").await?;
+    let mut insert_owner = clickhouse.insert::<OwnerRow>("owner_info").await?;
 
     insert_wallet.write(&row).await?;
     insert_owner.write(&owner).await?;
@@ -178,7 +174,6 @@ async fn insert_tx_clickhouse(
     clickhouse: &Arc<Client>,
     tx_hash: H256,
     block_number: u64,
-    tx_index: u32,
     from: Option<Address>,
     to: Option<Address>,
     value: String,
@@ -186,7 +181,6 @@ async fn insert_tx_clickhouse(
     let row = TransactionRow {
         hash: format!("{:#x}", tx_hash),
         block_number,
-        tx_index,
         from_addr: from.map(|a| format!("{:#x}", a)).unwrap_or_default(),
         to_addr: to.map(|a| format!("{:#x}", a)).unwrap_or_default(),
         value
