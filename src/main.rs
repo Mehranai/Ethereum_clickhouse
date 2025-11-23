@@ -48,8 +48,6 @@ enum Sensivity {
     HighSensive = 2,
 }
 
-Sensivity::LowSensive
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let clickhouse = Arc::new(
