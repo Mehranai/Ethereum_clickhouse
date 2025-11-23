@@ -1,5 +1,5 @@
 // for running Codes :
-// clickhouse-client --user=mehran --password='mehran.crypto9' --multiquery < init_clickhouse.sql
+// clickhouse-client --user=mehran --password='mehran.crypto9' --multiquery < init_database.sql
 
 //drop database: DROP DATABASE IF EXISTS pajohesh;
 
@@ -33,6 +33,22 @@ struct TransactionRow {
     to_addr: String,
     value: String
 }
+
+#[derive(Row, Serialize, Deserialize)]
+struct OwnerRow {
+    address: String,
+    person_name: String,
+    person_id: u16,
+    personal_id: u16
+}
+
+enum Sensivity {
+    LowSensive = 0,
+    MiddleSensive = 1,
+    HighSensive = 2,
+}
+
+Sensivity::LowSensive
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -138,12 +154,24 @@ async fn save_wallet_clickhouse(
         last_seen_block: block_number,
         wallet_type,
         defi: "".to_string(),
-        sensitive: 1,
+        sensitive: Sensivity::LowSensive as u8,
     };
 
-    let mut insert = clickhouse.insert::<WalletRow>("wallet_info").await?;
-    insert.write(&row).await?;
-    insert.end().await?;
+    let owner = OwnerRow {
+        address: format!("{:#x}", addr),
+        person_name: "".to_string(),
+        person_id: 0,
+        personal_id: 0,
+    };
+
+    let mut insert_wallet = clickhouse.insert::<WalletRow>("wallet_info").await?;
+    
+    let mut insert_owner = clickhouse.insert::<OwnerRow>("wallet_info").await?;
+
+    insert_wallet.write(&row).await?;
+    insert_owner.write(&owner).await?;
+    insert_wallet.end().await?;
+    insert_owner.end().await?;
 
     Ok(())
 }
@@ -172,6 +200,7 @@ async fn insert_tx_clickhouse(
     Ok(())
 }
 
+// # main 
 #[derive(Deserialize)]
 struct EtherscanAbiResult {
     status: String,

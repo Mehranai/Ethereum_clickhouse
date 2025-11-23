@@ -1,6 +1,6 @@
 CREATE DATABASE IF NOT EXISTS pajohesh;
 
-CREATE TABLE IF NOT EXISTS pajohesh.wallets (
+CREATE TABLE IF NOT EXISTS pajohesh.wallet_info (
     address String,
     balance String,
     nonce UInt64,
@@ -20,3 +20,12 @@ CREATE TABLE IF NOT EXISTS pajohesh.transactions (
     value String,
 ) ENGINE = MergeTree()
 ORDER BY (block_number, tx_index);
+
+CREATE TABLE IF NOT EXISTS pajohesh.owner (
+    address String,
+    person_name String,
+    person_id UInt16,
+    personal_id UInt16,
+) ENGINE = ReplacingMergeTree()
+ORDER BY address;
+
