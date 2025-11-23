@@ -860,6 +860,7 @@ dependencies = [
  "anyhow",
  "clickhouse",
  "ethers",
+ "futures",
  "reqwest 0.12.24",
  "serde",
  "serde_json",
